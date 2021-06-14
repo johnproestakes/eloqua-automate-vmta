@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Update Virtual MTAs</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.2/angular.min.js"
+    ></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+  </head>
+  <body>
+    <div ng-app="EloquaAutomate" ng-controller="MainController">
+      <div
+        style="padding: 3em 0.5em; background: #c0c0c0; margin-bottom: 1.5em;"
+      >
+        <h1 class="ui center aligned header">Virtual MTA Update Automation</h1>
+      </div>
+      <div class="ui container">
+        <div class="ui form">
+          <h2 class="ui header">Eloqua API Credentials</h2>
+          <div class="ui field">
+            <label>Pod</label>
+            <input
+              type="text"
+              placeholder="e.g. p01"
+              ng-model="data.podNumber"
+            />
+          </div>
+          <div class="ui field">
+            <label>Username</label>
+            <input type="text" ng-model="data.username" />
+          </div>
+          <div class="ui field">
+            <label>Password</label>
+            <input type="password" ng-model="data.password" />
+          </div>
+
+          <h2 class="ui header">Queue Setup</h2>
+          <div class="ui field">
+            <label for="num-ids">Input Email Numerical Ids</label>
+            <textarea
+              id="num-ids"
+              ng-model="data.inputText"
+              rows="8"
+            ></textarea>
+          </div>
+          <div class="ui field">
+            <label for="vmta">Set Virtual MTAs</label>
+            <select id="vmta" ng-model="data.virtualMta"
+              ><option value="1">bounced@info.optum.com</option
+              ><option value="2">Warming_Bounced@info.optum.com</option></select
+            >
+          </div>
+          <button class="ui button" ng-click="processList()">
+            Process
+          </button>
+        </div>
+
+        <div style="padding-top: 10px;" ng-show="data.list.length>0">
+          <h1 class="ui header">Preview Request</h1>
+          <table class="ui table">
+            <thead>
+              <tr>
+                <th>Email Asset Id</th>
+                <th>Virtual MTAs</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="item in data.list">
+                <td>{{item.id}}</td>
+                <td>
+                  <select ng-model="item.virtualMta"
+                    ><option value="1">bounced@info.optum.com</option
+                    ><option value="2"
+                      >Warming_Bounced@info.optum.com</option
+                    ></select
+                  >
+                </td>
+                <td>
+                  <div ng-if="!item.messages">No Status</div>
+                  <div ng-repeat="msg in item.messages">
+                    <i
+                      ng-class="{'green check icon': msg.status=='updated', 'red exclamation triangle icon': msg.status!=='updated'}"
+                    ></i>
+                    <span
+                      ng-class="{'green': msg.status=='updated', 'red': msg.status!=='updated'}"
+                      >{{msg.description}}</span
+                    >
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <button
+            ng-class="{loading: isLoading}"
+            ng-click="executeRequest()"
+            class="ui primary button"
+          >
+            Run
+          </button>
+        </div>
+      </div>
+      <div style="height: 100px;">&nbsp;</div>
+    </div>
+
+    <script type="text/javascript">
+      angular.module("EloquaAutomate", []).controller("MainController", [
+        "$scope",
+        "$http",
+        function ($scope, $http) {
+          $scope.data = {
+            list: [],
+            inputText: "",
+            virtualMta: "2",
+            podNumber: "",
+            username: "",
+            password: "",
+          };
+          $scope.isLoading = false;
+          $scope.processList = function () {
+            $scope.data.list = [];
+            $scope.data.inputText.split(/\n/).forEach(function (item) {
+              if (
+                $scope.data.list.filter(function (a) {
+                  return a.id == item.trim();
+                }).length == 0
+              ) {
+                if (item.trim().length > 0)
+                  $scope.data.list.push({
+                    id: item.trim(),
+                    virtualMta: $scope.data.virtualMta,
+                  });
+              }
+            });
+          };
+
+          $scope.executeRequest = function () {
+            $scope.isLoading = true;
+            setTimeout(function () {
+              $http({
+                method: "post",
+                url: "/process",
+                data: {
+                  podNumber: $scope.data.podNumber,
+                  username: $scope.data.username,
+                  password: $scope.data.password,
+                  list: $scope.data.list,
+                },
+              }).then(function (data) {
+                console.log(data);
+                $scope.isLoading = false;
+
+                $scope.data.list.forEach(function (item) {
+                  item.messages = data.data.filter((a) => a.id == item.id);
+                });
+              });
+            }, 1000);
+          };
+        },
+      ]);
+    </script>
+  </body>
+</html>
