@@ -32,6 +32,7 @@
             <input
               type="text"
               placeholder="e.g. p01"
+              ng-change="updateLocalStorage('podNumber')"
               ng-model="data.podNumber"
             />
           </div>
@@ -40,12 +41,17 @@
             <input
               type="text"
               placeholder="e.g. InstanceName\UserName"
+              ng-change="updateLocalStorage('username')"
               ng-model="data.username"
             />
           </div>
           <div class="ui field">
             <label>Password</label>
-            <input type="password" ng-model="data.password" />
+            <input
+              type="password"
+              ng-model="data.password"
+              ng-change="updateLocalStorage('password')"
+            />
           </div>
 
           <h2 class="ui header">Queue Setup</h2>
@@ -64,7 +70,9 @@
               <option value="2">{{getVmtaValue(2)}}</option>
             </select>
           </div>
-          <button class="ui button" ng-click="processList()">Process</button>
+          <button class="ui button" ng-click="processList()">
+            Generate Request Preview
+          </button>
         </div>
 
         <div style="padding-top: 10px" ng-show="data.list.length>0">
@@ -123,11 +131,21 @@
             list: [],
             inputText: "",
             virtualMta: "2",
-            podNumber: "",
-            username: "",
-            password: ""
+            podNumber: localStorage.getItem("podNumber")
+              ? localStorage.getItem("podNumber")
+              : "",
+            username: localStorage.getItem("username")
+              ? localStorage.getItem("username")
+              : "",
+            password: localStorage.getItem("password")
+              ? localStorage.getItem("password")
+              : ""
           };
           $scope.isLoading = false;
+
+          $scope.updateLocalStorage = function (id) {
+            localStorage.setItem(id, $scope.data[id]);
+          };
 
           $scope.getVmtaValue = function (id) {
             var output = {
