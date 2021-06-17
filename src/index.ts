@@ -1,6 +1,7 @@
-import { EloquaCredentials } from "./credentials/EloquaCredentials";
 import { RequestService } from "./class/RequestService";
 import { RequestWorker } from "./class/RequestWorker";
+import { updateEmailVirtualMTA } from "./helpers/updateVirtualMTAs";
+import { getEmailNameFromId } from "./helpers/getEmailNameFromId";
 
 //load libraries
 const express = require("express");
@@ -21,122 +22,6 @@ app.get("/", (req: any, res: any) => {
   //
 });
 
-function getEmailNameFromId(
-  id: number,
-  virtualMta: number,
-  podNumber: string,
-  username: string,
-  password: string,
-  RF: RequestService
-): RequestWorker {
-  let RW = new RequestWorker(
-    {
-      method: "get",
-      url:
-        "https://secure." +
-        podNumber +
-        ".eloqua.com/api/REST/2.0/assets/email/" +
-        id.toString(),
-      headers: {
-        "Content-type": "application/json",
-        Authorization: EloquaCredentials(username, password),
-      },
-    },
-    RF
-  );
-  RW.$on("requestSuccess", (data: any, response: any) => {
-    let body = JSON.parse(data);
-
-    if (body.type && body.type == "Email") {
-      if (body.name.length > 0) {
-        RF.queueRequest(
-          updateEmailVirtualMTA(
-            id,
-            body.name,
-            virtualMta,
-            podNumber,
-            username,
-            password,
-            RF
-          )
-        );
-      }
-      console.log(body.name);
-    }
-    //push update into queue
-    //updateEmailVirtualMTA(id, name, virtualMta);
-  });
-  RW.$on("requestError", (data: any, response: any) => {
-    console.log("error");
-    output.push({
-      id: id,
-      status: "error",
-      description: "Could not retrieve asset name from id",
-      virtualMtaId: "",
-    });
-  });
-  return RW;
-}
-
-function updateEmailVirtualMTA(
-  id: number,
-  name: string,
-  virtualMta: number,
-  podNumber: string,
-  username: string,
-  password: string,
-  RF: RequestService
-): RequestWorker {
-  let RW = new RequestWorker(
-    {
-      method: "put",
-      url:
-        "https://secure." +
-        podNumber +
-        ".eloqua.com/api/REST/2.0/assets/email/" +
-        id.toString(),
-      body: JSON.stringify({
-        name: name, // might need to get from original.
-        id: id.toString(),
-        virtualMTAId: virtualMta,
-        depth: "partial",
-      }),
-      headers: {
-        "Content-type": "application/json",
-        Authorization: EloquaCredentials(username, password),
-      },
-    },
-    RF
-  );
-  RW.$on("requestSuccess", (data: any, response: any) => {
-    let body = JSON.parse(data);
-
-    if (body.type && body.type == "Email") {
-      if (body.name.length > 0) {
-        //    RF.queueRequest(updateEmailVirtualMTA(id, body.name, virtualMta));
-        output.push({
-          id: id,
-          name: name,
-          status: "updated",
-          description: "Asset updated to Virtual MTA: " + body.virtualMTAId,
-          virtualMtaId: body.virtualMTAId,
-        });
-      }
-      console.log("updated", body.name, "to", body.virtualMTAId);
-    }
-  });
-  RW.$on("requestError", (data: any, response: any) => {
-    console.log("error");
-    output.push({
-      id: id,
-      name: name,
-      status: "error",
-      description: "Could not update email",
-      virtualMtaId: "",
-    });
-  });
-  return RW;
-}
 var output: any[] = [];
 app.post("/process", (req: any, res: any) => {
   output = [];
@@ -147,17 +32,60 @@ app.post("/process", (req: any, res: any) => {
     res.send(JSON.stringify(output));
     res.end();
   });
-  console.log(req.body);
+
   req.body.list.forEach((item: any) => {
     console.log(item);
 
     RF.queueRequest(
       getEmailNameFromId(
         parseInt(item.id),
-        parseInt(item.virtualMta),
         req.body.podNumber,
         req.body.username,
         req.body.password,
+        function (body: any) {
+          RF.queueRequest(
+            updateEmailVirtualMTA(
+              parseInt(item.id),
+              body.name,
+              parseInt(item.virtualMta),
+              req.body.podNumber,
+              req.body.username,
+              req.body.password,
+              function () {
+                //success
+                console.log("success");
+                output.push({
+                  id: body.id,
+                  name: body.name,
+                  status: "updated",
+                  description:
+                    "Asset updated to Virtual MTA: " + body.virtualMTAId,
+                  virtualMtaId: body.virtualMTAId
+                });
+              },
+              function () {
+                //failiure
+                console.log("failure");
+                output.push({
+                  id: item.id,
+                  name: "",
+                  status: "error",
+                  description: "Could not update email",
+                  virtualMtaId: ""
+                });
+              },
+              RF
+            )
+          );
+        },
+        function () {
+          output.push({
+            id: item.id,
+            status: "error",
+            description: "Could not retrieve asset name from id",
+            virtualMtaId: ""
+          });
+        },
         RF
       )
     );
@@ -171,7 +99,8 @@ app.post("/process", (req: any, res: any) => {
 });
 
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
+  console.log("\n" + "-".repeat(50));
+  console.log(`Server listening on http://localhost:${port}`);
 });
 
 // updateEloquaEmail(25563);

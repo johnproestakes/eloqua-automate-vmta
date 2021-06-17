@@ -20,7 +20,7 @@
   <body>
     <div ng-app="EloquaAutomate" ng-controller="MainController">
       <div
-        style="padding: 3em 0.5em; background: #c0c0c0; margin-bottom: 1.5em;"
+        style="padding: 3em 0.5em; background: #e2e2e2; margin-bottom: 1.5em"
       >
         <h1 class="ui center aligned header">Virtual MTA Update Automation</h1>
       </div>
@@ -37,7 +37,11 @@
           </div>
           <div class="ui field">
             <label>Username</label>
-            <input type="text" ng-model="data.username" />
+            <input
+              type="text"
+              placeholder="e.g. InstanceName\UserName"
+              ng-model="data.username"
+            />
           </div>
           <div class="ui field">
             <label>Password</label>
@@ -55,17 +59,15 @@
           </div>
           <div class="ui field">
             <label for="vmta">Set Virtual MTAs</label>
-            <select id="vmta" ng-model="data.virtualMta"
-              ><option value="1">bounced@info.optum.com</option
-              ><option value="2">Warming_Bounced@info.optum.com</option></select
-            >
+            <select id="vmta" ng-model="data.virtualMta">
+              <option value="1">bounced</option>
+              <option value="2">Warming_Bounced</option>
+            </select>
           </div>
-          <button class="ui button" ng-click="processList()">
-            Process
-          </button>
+          <button class="ui button" ng-click="processList()">Process</button>
         </div>
 
-        <div style="padding-top: 10px;" ng-show="data.list.length>0">
+        <div style="padding-top: 10px" ng-show="data.list.length>0">
           <h1 class="ui header">Preview Request</h1>
           <table class="ui table">
             <thead>
@@ -79,12 +81,10 @@
               <tr ng-repeat="item in data.list">
                 <td>{{item.id}}</td>
                 <td>
-                  <select ng-model="item.virtualMta"
-                    ><option value="1">bounced@info.optum.com</option
-                    ><option value="2"
-                      >Warming_Bounced@info.optum.com</option
-                    ></select
-                  >
+                  <select ng-model="item.virtualMta">
+                    <option value="1">bounced@info.optum.com</option>
+                    <option value="2">Warming_Bounced@info.optum.com</option>
+                  </select>
                 </td>
                 <td>
                   <div ng-if="!item.messages">No Status</div>
@@ -111,7 +111,7 @@
           </button>
         </div>
       </div>
-      <div style="height: 100px;">&nbsp;</div>
+      <div style="height: 100px">&nbsp;</div>
     </div>
 
     <script type="text/javascript">
@@ -125,7 +125,7 @@
             virtualMta: "2",
             podNumber: "",
             username: "",
-            password: "",
+            password: ""
           };
           $scope.isLoading = false;
           $scope.processList = function () {
@@ -139,7 +139,7 @@
                 if (item.trim().length > 0)
                   $scope.data.list.push({
                     id: item.trim(),
-                    virtualMta: $scope.data.virtualMta,
+                    virtualMta: $scope.data.virtualMta
                   });
               }
             });
@@ -155,19 +155,19 @@
                   podNumber: $scope.data.podNumber,
                   username: $scope.data.username,
                   password: $scope.data.password,
-                  list: $scope.data.list,
-                },
+                  list: $scope.data.list
+                }
               }).then(function (data) {
                 console.log(data);
                 $scope.isLoading = false;
 
                 $scope.data.list.forEach(function (item) {
-                  item.messages = data.data.filter((a) => a.id == item.id);
+                  item.messages = data.data.filter(a => a.id == item.id);
                 });
               });
             }, 1000);
           };
-        },
+        }
       ]);
     </script>
   </body>
