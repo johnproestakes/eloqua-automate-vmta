@@ -7,8 +7,8 @@ export function getEmailNameFromId(
   podNumber: string,
   username: string,
   password: string,
-  success: Function = function (body: any) {},
-  failure: Function = function () {},
+  success: Function,
+  failure: Function,
   RF: RequestService
 ): RequestWorker {
   let RW = new RequestWorker(
@@ -31,10 +31,9 @@ export function getEmailNameFromId(
 
     if (body.type && body.type == "Email") {
       if (body.name.length > 0) {
-        success.call(body);
+        success(body);
+        console.log(`Found asset name ${body.name} @ asset id {id}`);
       }
-
-      console.log("Found ", body.name);
     }
     //push update into queue
     //updateEmailVirtualMTA(id, name, virtualMta);

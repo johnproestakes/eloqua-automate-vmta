@@ -41,8 +41,8 @@ export function updateEmailVirtualMTA(
       if (body.name.length > 0) {
         //    RF.queueRequest(updateEmailVirtualMTA(id, body.name, virtualMta));
         success.call(body);
+        console.log("Updated", body.name, "to", body.virtualMTAId);
       }
-      console.log("Updated", body.name, "to", body.virtualMTAId);
     }
   });
   RW.$on("requestError", (data: any, response: any) => {

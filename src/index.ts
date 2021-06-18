@@ -46,16 +46,16 @@ app.post("/process", (req: any, res: any) => {
           RF.queueRequest(
             updateEmailVirtualMTA(
               parseInt(item.id),
-              body.name,
+              typeof body === "undefined" ? "" : body.name,
               parseInt(item.virtualMta),
               req.body.podNumber,
               req.body.username,
               req.body.password,
               function () {
                 //success
-                console.log("success");
+
                 output.push({
-                  id: body.id,
+                  id: item.id,
                   name: body.name,
                   status: "updated",
                   description:
@@ -65,7 +65,7 @@ app.post("/process", (req: any, res: any) => {
               },
               function () {
                 //failiure
-                console.log("failure");
+
                 output.push({
                   id: item.id,
                   name: "",
